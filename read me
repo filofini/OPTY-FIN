@@ -1,0 +1,119 @@
+RUOLI UTENTE
+Ufficio
+Creare, modificare, eliminare Ordini
+Creare e salvare Bancali Template (con distinta base)
+Avviare l’ottimizzazione
+Scaricare il file Excel del piano di taglio
+Produzione
+Modificare lo Stock
+Aggiornare lo stato degli Ordini
+Scrivere messaggi nella chat collegata all’Ordine
+UNITÀ DI MISURA
+Tutte le lunghezze sono espresse in millimetri (mm).
+STRUTTURA DATI
+STOCK
+Inserito in forma aggregata, non per tavola singola.
+Campi:
+woodType (tipo legno)
+thickness (spessore)
+width (larghezza)
+length_mm (lunghezza tavola)
+qty (quantità di tavole uguali)
+source (PURCHASE oppure OFFCUT)
+note opzionale
+updatedAt
+BANCALI TEMPLATE
+Salvati una sola volta e riutilizzabili.
+Campi:
+internalCode (codice interno univoco)
+title
+pieces[]: elenco pezzi con:
+woodType
+thickness
+width
+length_mm
+qty
+ORDINE
+Campi:
+orderCode (codice univoco)
+items[]:
+palletTemplateId
+qty
+status:
+NEW
+PLANNED
+IN_PROGRESS
+DONE
+SHIPPED
+Ogni Ordine ha una chat collegata con:
+orderId
+authorRole (Office/Production)
+text
+timestamp
+REGOLE DI OTTIMIZZAZIONE
+Raggruppamento
+L’ottimizzazione deve essere fatta separatamente per ogni gruppo:
+(tipo legno, spessore, larghezza)
+Non sono consentite sostituzioni tra sezioni diverse.
+Domanda totale
+Somma di tutti i pezzi delle distinte base dei bancali nell’ordine, moltiplicati per la quantità di ogni bancale.
+Stock disponibile
+Tutte le righe stock per quel gruppo.
+Priorità utilizzo:
+OFFCUT
+PURCHASE
+Obiettivo
+Minimizzare lo scarto totale.
+Regola Offcut
+Se leftover (avanzo) ≥ 200 mm → diventa nuovo Stock con source = OFFCUT
+Se leftover < 200 mm → è scarto e non torna a stock
+Insufficienza materiali
+Se non è possibile soddisfare tutta la domanda:
+Restituire elenco pezzi mancanti (length_mm + qty)
+NON modificare lo stock
+Segnare risultato come INSUFFICIENT
+ALGORITMO
+Implementare per ogni gruppo:
+Ordinare i pezzi richiesti in ordine decrescente di lunghezza
+Applicare algoritmo Best-Fit Decreasing:
+Inserire ogni pezzo nella tavola che lascia il minor avanzo ≥ 0
+Se nessuna tavola lo contiene, aprire una nuova tavola dallo stock
+Dopo il primo passaggio, fare un semplice tentativo di miglioramento:
+provare scambi tra tavole per ridurre scarto
+Restituire per ogni tavola usata:
+lunghezza originale
+lista tagli in formato stringa tipo "2000|2000|1500"
+leftover
+tipo leftover (SCRAP oppure OFFCUT)
+EXPORT EXCEL
+Generare un unico file Excel:
+Nome file:
+ordine_<orderCode>_cutplan.xlsx
+Foglio 1: SUMMARY
+Una riga per ogni gruppo (tipo legno + spessore × larghezza)
+Colonne:
+Gruppo
+Pezzi richiesti totali
+Tavole usate
+Scarto totale (mm)
+Offcut generati (numero)
+Offcut generati (mm totali)
+Esito (OK / INSUFFICIENT)
+Foglio 2: CUT_PLAN
+Una riga per ogni tavola utilizzata
+Colonne:
+Gruppo
+Source (OFFCUT/PURCHASE)
+Lunghezza originale
+Tagli (esempio: 2000|2000)
+Leftover (mm)
+Tipo leftover (SCRAP/OFFCUT)
+Deve essere presente un pulsante per scaricare il file Excel.
+TECNOLOGIA
+Database: SQLite
+Backend: Python con FastAPI oppure Node con Express
+Frontend semplice
+Seed data di test:
+Stock: woodType A, 80x20, length 4000, qty 2
+Domanda: 4 pezzi da 2000
+Risultato atteso: due tavole tagliate 2000|2000, scarto 0
