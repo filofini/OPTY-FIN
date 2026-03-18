@@ -145,6 +145,7 @@ async def consume_stock(stock_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Stock not found")
         
     db_stock.qty = 0
+    db_stock.note = "Esaurito - In attesa di completamento ordine"
     db.commit()
     await manager.broadcast("UPDATE")
     return {"ok": True, "message": "Lot consumed"}

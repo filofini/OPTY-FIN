@@ -170,6 +170,8 @@ def process_optimization(db: Session, order_id: int):
             stock = db.query(models.Stock).filter(models.Stock.id == bid).first()
             if stock:
                 stock.qty -= used_qty
+                if stock.qty == 0:
+                    stock.note = "Esaurito - In attesa di completamento ordine"
                 
         # create OFFCUTS
         for b in group_data["used_boards"]:

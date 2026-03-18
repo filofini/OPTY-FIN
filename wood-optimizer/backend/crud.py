@@ -4,6 +4,18 @@ import datetime
 
 # -- Stock --
 def get_stock(db: Session, skip: int = 0, limit: int = 100):
+    # Auto-delete depleted stock older than 1 hour
+    cutoff = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+    to_delete = db.query(models.Stock).filter(
+        models.Stock.qty == 0,
+        models.Stock.note == "In eliminazione tra 1 ora perché esaurito",
+        models.Stock.updatedAt <= cutoff
+    ).all()
+    if to_delete:
+        for s in to_delete:
+            db.delete(s)
+        db.commit()
+
     return db.query(models.Stock).offset(skip).limit(limit).all()
 
 def create_stock(db: Session, stock: schemas.StockCreate):
@@ -91,6 +103,26 @@ def update_order_status(db: Session, order_id: int, status: schemas_enums.OrderS
     if db_order:
         db_order.status = status
         db_order.updatedAt = datetime.datetime.utcnow()
+        
+        # Handle zero-qty stock delayed deletion notes
+        if status == schemas_enums.OrderStatusEnum.DONE:
+            zero_stocks = db.query(models.Stock).filter(
+                models.Stock.qty == 0,
+                models.Stock.note == "Esaurito - In attesa di completamento ordine"
+            ).all()
+            for s in zero_stocks:
+                s.note = "In eliminazione tra 1 ora perché esaurito"
+                s.updatedAt = datetime.datetime.utcnow()
+        else:
+            # Revert if mistakenly clicked DONE
+            marked_stocks = db.query(models.Stock).filter(
+                models.Stock.qty == 0,
+                models.Stock.note == "In eliminazione tra 1 ora perché esaurito"
+            ).all()
+            for s in marked_stocks:
+                s.note = "Esaurito - In attesa di completamento ordine"
+                s.updatedAt = datetime.datetime.utcnow()
+
         db.commit()
         db.refresh(db_order)
     return db_order
