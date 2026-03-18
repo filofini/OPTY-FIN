@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
-const WEBSOCKET_URL = "ws://localhost:8000/api/ws";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const WEBSOCKET_URL = `${BASE_URL.replace(/^http/, 'ws')}/api/ws`;
 
 export const useWebSocket = (onUpdate: () => void) => {
     const [status, setStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
